@@ -1,4 +1,5 @@
 import { Command, MarkdownView, Notice, TFile, WorkspaceLeaf, normalizePath, setIcon } from 'obsidian';
+import { degrees } from '@cantoo/pdf-lib';
 
 import { PDFPlusLibSubmodule } from './submodule';
 import { PDFComposerModal, PDFCreateModal, PDFPageDeleteModal, PDFPageLabelEditModal, PDFOutlineTitleModal, DummyFileModal } from 'modals';
@@ -15,11 +16,23 @@ import { DataviewInlineFieldsModal } from './dataview';
 
 export class PDFPlusCommands extends PDFPlusLibSubmodule {
     commands: Record<string, Command>;
+    private rotationQueue: Promise<void> = Promise.resolve();
 
     constructor(...args: ConstructorParameters<typeof PDFPlusLibSubmodule>) {
         super(...args);
 
         const commandArray: Command[] = [
+            {
+                id: 'rotate-current-page-clockwise',
+                name: 'Rotate this page clockwise and save',
+                hotkeys: [{ modifiers: ['Shift'], key: '=' }],
+                checkCallback: (checking) => this.rotateCurrentPage(checking, 90)
+            }, {
+                id: 'rotate-current-page-counterclockwise',
+                name: 'Rotate this page counterclockwise and save',
+                hotkeys: [{ modifiers: ['Shift'], key: '-' }],
+                checkCallback: (checking) => this.rotateCurrentPage(checking, -90)
+            },
             {
                 id: 'copy-link-to-selection',
                 name: 'Copy link to selection or annotation',
@@ -567,6 +580,38 @@ export class PDFPlusCommands extends PDFPlusLibSubmodule {
 
     toggleAutoPaste() {
         this.plugin.toggleAutoPaste();
+    }
+
+    rotateCurrentPage(checking: boolean, angle: 90 | -90) {
+        const view = this.lib.workspace.getActivePDFView();
+        const child = view?.viewer.child;
+        const file = view?.file;
+        const viewer = child?.pdfViewer?.pdfViewer;
+        if (!view || !child || !file || !viewer || !this.lib.isEditable(child)) return false;
+
+        // Do not consume + or _ while typing in the search box or page number field.
+        const activeElement = view.containerEl.doc.activeElement;
+        if (activeElement?.closest('input, textarea, select, [contenteditable="true"]')) return false;
+
+        const pageNumber = viewer.currentPageNumber;
+        if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > viewer.pagesCount) return false;
+        if (!checking) {
+            // Read fresh bytes for each operation so rapid presses accumulate safely.
+            this.rotationQueue = this.rotationQueue.then(async () => {
+                const doc = await this.lib.loadPdfLibDocument(file);
+                const page = doc.getPage(pageNumber - 1);
+                page.setRotation(degrees(((page.getRotation().angle + angle) % 360 + 360) % 360));
+                await this.app.vault.modifyBinary(file, await doc.save());
+                // Obsidian reloads modified PDFs; keep the rotated page in view.
+                if (view.file === file) {
+                    await view.viewer.loadFile(file, `#page=${pageNumber}`);
+                }
+            }).catch((error: unknown) => {
+                console.error('PDF++: Could not rotate PDF page', error);
+                new Notice(`${this.plugin.manifest.name}: Could not save page rotation: ${String(error)}`);
+            });
+        }
+        return true;
     }
 
     addPage(checking: boolean) {
