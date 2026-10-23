@@ -16,6 +16,7 @@ import { AnnotationElement, PDFOutlineViewer, PDFViewerComponent, PDFViewerChild
 import { SidebarView, SpreadMode } from 'pdfjs-enums';
 import { VimBindings } from 'vim/vim';
 import { PDFPlusSettings } from 'settings';
+import { mountPDFSearchHitMarkers, parsePDFSearchQuery } from 'pdf-search';
 
 
 export const patchPDFInternals = async (plugin: PDFPlus, pdfViewerComponent: PDFViewerComponent): Promise<boolean> => {
@@ -38,6 +39,29 @@ export const patchPDFInternals = async (plugin: PDFPlus, pdfViewerComponent: PDF
             if (!child.pdfViewer) return resolve(false);
             patchObsidianViewer(plugin, child.pdfViewer);
 
+            // Transform only events emitted by the PDF find bar. Keep the displayed
+            // input intact so repeat searches and settings changes use the same terms.
+            plugin.register(around(child.pdfViewer.findBar.constructor.prototype, {
+                dispatchEvent(old) {
+                    return function (this: ObsidianViewer['findBar'], ...args: any[]) {
+                        const restore = around(this.eventBus, {
+                            dispatch(dispatch) {
+                                return function (name: any, data: any) {
+                                    if (name === 'find' && typeof data.query === 'string') {
+                                        data = { ...data, query: parsePDFSearchQuery(data.query) };
+                                    }
+                                    return dispatch.call(this, name, data);
+                                };
+                            },
+                        });
+                        try {
+                            return old.apply(this, args);
+                        } finally {
+                            restore();
+                        }
+                    };
+                },
+            }));
             patchAppOptions(plugin);
 
             plugin.patchStatus.pdfInternals = true;
@@ -140,6 +164,10 @@ const patchPDFViewerChild = (plugin: PDFPlus, child: PDFViewerChild) => {
                 this.component.load();
 
                 const ret = await old.call(this, ...args);
+
+                if (this.component && this.pdfViewer) {
+                    mountPDFSearchHitMarkers(this.component, this.pdfViewer);
+                }
 
                 const viewerContainerEl = this.pdfViewer?.dom?.viewerContainerEl;
                 if (viewerContainerEl) {

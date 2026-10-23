@@ -580,6 +580,34 @@ body {
     background-color: hsla(var(--interactive-accent-hsl), 0.15);
 }
 
+.pdf-plus-search-hit-rail {
+    position: absolute;
+    inset: 0 2px 0 auto;
+    width: 5px;
+    pointer-events: none;
+    z-index: 2;
+    will-change: transform;
+}
+
+.pdf-plus-search-hit-marker {
+    position: absolute;
+    width: 5px;
+    height: 2px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 2px;
+    background: var(--text-highlight-bg);
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0.8;
+}
+
+.pdf-plus-search-hit-marker:hover {
+    width: 7px;
+    opacity: 1;
+}
+
 /* From Obsidian's app.css (.annotationLayer .mod-focused /  .annotationLayer .boundingRect)*/
 .pdf-plus-annotation-bounding-rect {
     background-color: rgba(var(--text-highlight-bg-rgb), 0.1);

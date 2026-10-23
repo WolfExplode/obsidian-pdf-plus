@@ -37,6 +37,20 @@ PDF++ stands out among other PDF annotation tools for the following reasons:
 
 ## Getting started
 
+### Search for multiple terms in a PDF
+
+Separate queries with `|` in the PDF search bar: `bpm | rate` finds either
+`bpm` or `rate`. Each query can be a phrase, for example `heart rate | blood pressure`.
+The match count, next/previous buttons, and search options apply to the combined results.
+Commas remain literal text. Quoted queries preserve spaces, so `" rate"` will
+match ` rate` but not `moderate`; combine it with other terms as
+`bpm | " rate"`. Quote a query containing a literal pipe: `"A | B" | pulse`.
+Inside a quoted query, use doubled quotes (`""`) for a literal double quote.
+Empty entries and duplicate queries are ignored. Searches without pipes work as before.
+
+PDF++ also shows a small marker beside the PDF scrollbar for every search hit.
+Select a marker to jump near that match.
+
 Here I'm just scratching the surface of what PDF++ can do. See [below](#features) and the plugin settings in Obsidian for more details.
 Also note that each feature can be toggled on and off in the plugin settings, which lets you customize this plugin to best fit into your use case.
 

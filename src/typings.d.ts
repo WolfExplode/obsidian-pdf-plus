@@ -421,6 +421,7 @@ interface PDFSearchMatchCounts {
 }
 
 interface PDFFindController {
+    pageMatches: number[][];
     [name: string]: unknown;
 }
 
@@ -612,6 +613,8 @@ interface PDFJsEventMap {
     switchscrollmode: { mode: ScrollMode, source?: any };
     scalechanged: { value: string, source?: any };
     scalechanging: { source: PDFViewer, scale: number, presetValue?: number };
+    find: { source: PDFFindBar, type: string, query: string | string[] };
+    updatefindmatchescount: { source: PDFFindController, matchesCount: PDFSearchMatchCounts };
     documentinit: { source: ObsidianViewer };
 }
 
