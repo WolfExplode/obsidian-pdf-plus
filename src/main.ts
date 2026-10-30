@@ -5,6 +5,7 @@ import { patchPDFView, patchPDFInternals, patchBacklink, patchWorkspace, patchPa
 import { PDFPlusLib } from 'lib';
 import { AutoCopyMode } from 'auto-copy';
 import { ColorPalette } from 'color-palette';
+import { openChartLabeler } from 'chart-labeler';
 import { DomManager } from 'dom-manager';
 import { PDFCroppedEmbed } from 'pdf-cropped-embed';
 import { DEFAULT_SETTINGS, NamedTemplate, PDFPlusSettings, PDFPlusSettingTab } from 'settings';
@@ -118,6 +119,11 @@ export default class PDFPlus extends Plugin {
 		this.startTrackingActiveMarkdownFile();
 
 		this.registerObsidianProtocolHandler('pdf-plus', this.obsidianProtocolHandler.bind(this));
+        this.registerObsidianProtocolHandler('chart-labeler', (params) => {
+            if (params.vault && params.vault !== this.app.vault.getName()) return;
+            const file = this.app.vault.getAbstractFileByPath(params.pdf || '');
+            if (file instanceof TFile && file.extension.toLowerCase() === 'pdf') void openChartLabeler(this.app, file);
+        });
 
 		this.addSettingTab(this.settingTab = new PDFPlusSettingTab(this));
 

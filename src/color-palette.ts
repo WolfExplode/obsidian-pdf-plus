@@ -4,6 +4,7 @@ import PDFPlus from 'main';
 import { KeysOfType, getEventCoords, isHexString, showMenuUnderParentEl, isTargetHTMLElement } from 'utils';
 import { PDFViewerChild, Rect } from 'typings';
 import { PDFPlusComponent } from 'lib/component';
+import { openChartLabeler } from 'chart-labeler';
 
 
 export type ColorPaletteState = Pick<ColorPalette, 'selectedColorName' | 'actionIndex' | 'displayTextFormatIndex' | 'writeFile'>;
@@ -79,6 +80,17 @@ export class ColorPalette extends PDFPlusComponent {
         this.displayTextFormatMenuEl = this.addDisplayTextFormatDropdown(this.paletteEl);
 
         this.addCropButton(this.paletteEl);
+        if (Platform.isDesktopApp && !this.child.isFileExternal) {
+            const button = this.paletteEl.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': 'Detect charts and open labeling workspace', type: 'button' } });
+            setIcon(button, 'chart-no-axes-combined');
+            setTooltip(button, 'Detect charts and open labeling workspace');
+            this.registerDomEvent(button, 'click', async () => {
+                if (!this.child.file || button.disabled) return;
+                button.disabled = true;
+                try { await openChartLabeler(this.plugin.app, this.child.file); }
+                finally { button.disabled = false; }
+            });
+        }
 
         if (this.child.isFileExternal) {
             this.addImportButton(this.paletteEl);
